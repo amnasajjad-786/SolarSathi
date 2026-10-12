@@ -32,7 +32,7 @@ export interface Profile {
   batteryPct: number;
   appliances: Appliance[];
   outages: Window[];
-  whatsapp?: { phone: string; apikey: string; auto: boolean };
+  whatsapp?: { phone: string; auto: boolean };
 }
 
 export interface HourWeather {

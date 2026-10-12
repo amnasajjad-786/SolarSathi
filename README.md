@@ -21,7 +21,7 @@ Hackathon theme: **Power. Water. Heat.** — Team Qubit Dynamics.
 | 🎯 Optimize | `lib/optimize.ts`: shift flexible loads (pump, iron, washing) into sunniest hours → enable grid pre-charge → switch off extras only during outages → AC eco mode (26–27°C) before ever cutting cooling. Every action has a measured gain. |
 | 🤖 Coach | **Gemini** turns the facts into a short plan in English or Roman Urdu — it may only use numbers the simulation produced. |
 | 📍 Location | Search any Pakistani city/town (Open-Meteo geocoding) or use the phone's GPS. |
-| 💬 WhatsApp alerts | Critical alerts (battery will die, inverter overload) sent via CallMeBot — free; each user links their number once. |
+| 💬 WhatsApp alerts | Users enter only their number; critical alerts (battery will die, inverter overload) are sent from SolarSaathi's own WhatsApp Business number (Meta Cloud API). |
 | 🔁 What-if | Flip any appliance on/off and the verdict and chart update instantly. "Apply plan" shows the green line. |
 
 **Why this split?** Code does the physics (reliable numbers), AI does what code can't: reading messy screenshots,
@@ -42,6 +42,18 @@ Without a key the app still works: the simulation, optimizer, chart, weather and
 offline; AI cards show "offline mode".
 
 Engine sanity check: `npx tsx scripts/check-engine.ts`
+
+## WhatsApp alerts setup (one time, by the team)
+
+1. developers.facebook.com → **Create app** → type *Business* → add the **WhatsApp** product.
+2. *WhatsApp → API Setup*: copy the **Phone number ID** of the free test sender number.
+3. In test mode, add up to **5 recipient numbers** (your testers) under "To" and verify each with the code Meta sends.
+4. Permanent token: business.facebook.com → *Settings → Users → System users* → add an admin system user →
+   **Generate token** for the app with `whatsapp_business_messaging` + `whatsapp_business_management`.
+5. Set `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE=hello_world` in `.env.local` / Vercel.
+6. For real alert text to any user: create a *Utility* template `battery_alert` with body
+   `SolarSaathi alert: {{1}}`, get it approved, set `WHATSAPP_TEMPLATE=battery_alert`, and complete business
+   verification to message numbers beyond the test list.
 
 ## Deploy
 
