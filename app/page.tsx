@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { AppliancesView, BatteryView, DashboardView, ForecastView, OutagesView, PlanView } from "@/components/views";
 import { useSolarModel } from "@/lib/useSolarModel";
+import { useWhatsAppAutoSend } from "@/components/WhatsAppAlerts";
 import type { View } from "@/lib/alerts";
 
 const VIEWS: View[] = ["dashboard", "battery", "outages", "appliances", "plan", "forecast"];
@@ -11,6 +12,7 @@ const VIEWS: View[] = ["dashboard", "battery", "outages", "appliances", "plan", 
 export default function Home() {
   const m = useSolarModel();
   const [view, setView] = useState<View>("dashboard");
+  useWhatsAppAutoSend(m.ready ? m.profile : null, m.alerts, m.clock.date);
 
   // Keep the current section in the URL hash so refresh/back work.
   useEffect(() => {

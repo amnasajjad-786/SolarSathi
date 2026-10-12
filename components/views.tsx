@@ -12,6 +12,7 @@ import { Badge, Button, Card, Spinner, StatTile } from "./ui";
 import { AlertList } from "./AlertList";
 import { BatteryChart, SolarChart } from "./BatteryChart";
 import { ScreenshotUpload } from "./ScreenshotUpload";
+import { WhatsAppCard } from "./WhatsAppAlerts";
 import { OutageTimeline } from "./OutageTimeline";
 import { ApplianceAiAdd, ApplianceEditor, OutageEditor, SystemForm } from "./editors";
 import { IconBattery, IconChevron, IconClock, IconPlugOff, IconSparkles, IconSun } from "./icons";
@@ -127,6 +128,13 @@ export function DashboardView({ m, go }: Props) {
             action={<Badge tone={m.alerts.some((a) => a.level === "critical") ? "red" : "slate"}>{m.alerts.length}</Badge>}
           >
             <AlertList alerts={m.alerts} lang={lang} onNavigate={go} />
+          </Card>
+          <Card
+            title={ur ? "WhatsApp alerts" : "WhatsApp alerts"}
+            subtitle={ur ? "Battery khatre mein ho to WhatsApp par message" : "Get a WhatsApp message when your battery is at risk"}
+            action={p.whatsapp?.auto ? <Badge tone="green">{ur ? "On" : "Active"}</Badge> : <Badge>{ur ? "Off" : "Off"}</Badge>}
+          >
+            <WhatsAppCard profile={p} onChange={m.update} alerts={m.alerts} lang={lang} />
           </Card>
           <Card title={ur ? "Battery ka andaza" : "Battery forecast"} subtitle={ur ? "Abhi se kal raat tak" : "Now until the end of tomorrow"}>
             <BatteryChart now={opt.base} plan={opt.actions.length ? opt.best : null} startHour={startHour} floorPct={m.floor} lang={lang} />

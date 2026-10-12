@@ -5,7 +5,8 @@ import { Badge, Button, NumberField, Spinner, Toggle } from "./ui";
 import { IconSparkles } from "./icons";
 import type { Appliance, Lang, Profile, Window } from "@/lib/types";
 import { fmtWindow, parseHHMM, parseOutagesRegex, toHHMM, windowHours } from "@/lib/time";
-import { CITIES, SAMPLE_SMS, uid } from "@/lib/demo-data";
+import { SAMPLE_SMS, uid } from "@/lib/demo-data";
+import { LocationPicker } from "./LocationPicker";
 
 const input = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100";
 
@@ -232,14 +233,9 @@ export function SystemForm({ profile, onChange, onReset, lang }: { profile: Prof
   return (
     <div>
       <div className="grid grid-cols-2 gap-4">
-        <label className="col-span-2 block text-sm">
-          <span className="mb-1.5 block text-[13px] font-medium text-slate-600">{ur ? "Shehar" : "City"}</span>
-          <select value={profile.city} onChange={(e) => onChange({ city: e.target.value, ...CITIES[e.target.value] })} className={`w-full ${input}`}>
-            {Object.keys(CITIES).map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
+        <div className="col-span-2">
+          <LocationPicker profile={profile} onChange={onChange} lang={lang} />
+        </div>
         <NumberField label={ur ? "Solar panels" : "Solar panels"} value={profile.panelKw} step={0.5} suffix="kW" onChange={(v) => onChange({ panelKw: v })} />
         <NumberField label="Inverter" value={profile.inverterKw} step={0.5} suffix="kW" onChange={(v) => onChange({ inverterKw: v })} />
         <NumberField label={ur ? "Battery size" : "Battery size"} value={profile.batteryKwh} step={0.1} suffix="kWh" onChange={(v) => onChange({ batteryKwh: v })} />

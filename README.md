@@ -1,8 +1,11 @@
 # ☀️ SolarSaathi — "Will my battery last tonight?"
 
-AI planner for Pakistani homes with solar + battery. It combines **your battery %**, **your load-shedding
-schedule**, **tomorrow's weather** and **your appliances**, then tells you exactly what to move, turn down or
-switch off so the battery lasts through every outage.
+**SolarSaathi** is an AI energy assistant for Pakistani homes with solar panels and batteries. It answers one
+question every evening: *"Will my battery last through tonight's load-shedding?"* Upload a screenshot of your
+inverter app and paste your LESCO / K-Electric SMS — the AI reads your battery level and outage times, checks
+tomorrow's weather and your appliances, and gives you a simple plan in English or Roman Urdu: run the water
+motor at noon on free sunshine, put the AC in eco mode during the outage, turn on grid charging. Critical alerts
+can be sent to WhatsApp. Your battery lasts the night, and no solar goes to waste. *Apni bijli, apna plan.*
 
 Hackathon theme: **Power. Water. Heat.** — Team Qubit Dynamics.
 
@@ -17,6 +20,8 @@ Hackathon theme: **Power. Water. Heat.** — Team Qubit Dynamics.
 | 🧮 Simulate | A 15-minute battery simulation (`lib/simulate.ts`) — solar in, loads out, grid on/off, safe floor (lithium 10%, lead-acid 50%), inverter overload. |
 | 🎯 Optimize | `lib/optimize.ts`: shift flexible loads (pump, iron, washing) into sunniest hours → enable grid pre-charge → switch off extras only during outages → AC eco mode (26–27°C) before ever cutting cooling. Every action has a measured gain. |
 | 🤖 Coach | **Gemini** turns the facts into a short plan in English or Roman Urdu — it may only use numbers the simulation produced. |
+| 📍 Location | Search any Pakistani city/town (Open-Meteo geocoding) or use the phone's GPS. |
+| 💬 WhatsApp alerts | Critical alerts (battery will die, inverter overload) sent via CallMeBot — free; each user links their number once. |
 | 🔁 What-if | Flip any appliance on/off and the verdict and chart update instantly. "Apply plan" shows the green line. |
 
 **Why this split?** Code does the physics (reliable numbers), AI does what code can't: reading messy screenshots,
@@ -29,6 +34,9 @@ cp .env.example .env.local   # add GEMINI_API_KEY
 npm install
 npm run dev                  # http://localhost:3000
 ```
+
+If one model hits its free quota (429) or hangs, the server falls back to the next model in `GEMINI_MODELS`
+and caches identical requests for 30 minutes.
 
 Without a key the app still works: the simulation, optimizer, chart, weather and regex schedule reader run
 offline; AI cards show "offline mode".

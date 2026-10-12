@@ -118,8 +118,9 @@ export function useSolarModel() {
 
   const facts = useMemo(() => {
     if (!profile || !opt) return {};
-    return buildFacts(profile, opt.base, opt.best, opt.actions, startHour, clock.minute, tomorrow);
-  }, [profile, opt, startHour, clock.minute, tomorrow]);
+    // Hour granularity only: a per-minute timestamp would re-trigger Gemini every minute.
+    return buildFacts(profile, opt.base, opt.best, opt.actions, startHour, tomorrow);
+  }, [profile, opt, startHour, tomorrow]);
 
   const alerts: Alert[] = useMemo(() => {
     if (!profile || !opt) return [];
@@ -218,7 +219,7 @@ function useAiPlan(facts: Record<string, unknown>, lang: Lang, enabled: boolean)
   return { plan: plan?.key === key ? plan.plan : null, busy, offline };
 }
 
-function buildFacts(p: Profile, base: SimResult, best: SimResult, actions: Action[], startHour: number, minute: number, tomorrow: Tomorrow | null) {
+function buildFacts(p: Profile, base: SimResult, best: SimResult, actions: Action[], startHour: number, tomorrow: Tomorrow | null) {
   const at = (t: number | null) => (t === null ? null : fmtHour(startHour + t));
   const sum = (s: SimResult) => ({
     batteryRunsOutAt: at(s.runOutAt),
@@ -231,7 +232,7 @@ function buildFacts(p: Profile, base: SimResult, best: SimResult, actions: Actio
   });
   return {
     city: p.city,
-    timeNow: fmtHour(startHour + minute / 60),
+    timeNow: fmtHour(startHour),
     batteryNowPct: Math.round(p.batteryPct),
     battery: `${p.batteryKwh} kWh ${p.batteryType} (safe floor ${minSocPct(p.batteryType)}%)`,
     solarPanelsKw: p.panelKw,
