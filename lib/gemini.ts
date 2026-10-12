@@ -6,12 +6,13 @@ import { GoogleGenAI, type Part } from "@google/genai";
  * exhausted (429) or unavailable (404/503) we fall back to the next and skip the
  * exhausted one until its cooldown passes. Override with GEMINI_MODELS="a,b,c".
  */
-const MODELS = (process.env.GEMINI_MODELS || process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-3.1-flash-lite,gemini-3.7-flash")
+const MODELS = (process.env.GEMINI_MODELS || process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-3.1-flash-lite,gemini-flash-latest,gemini-3-flash-preview,gemini-3.7-flash")
   .split(",")
   .map((m) => m.trim())
   .filter(Boolean);
 
 const COOLDOWN_MS = 60_000;
+const BUSY_COOLDOWN_MS = 15_000; // 503 "high demand" spikes are short
 const CALL_TIMEOUT_MS = 20_000; // a hung model is treated like an unavailable one
 const CACHE_TTL_MS = 30 * 60_000;
 const CACHE_MAX = 200;
@@ -33,6 +34,12 @@ function ai(): GoogleGenAI {
 export class NoKeyError extends Error {
   constructor() {
     super("GEMINI_API_KEY is not set");
+  }
+}
+
+export class BusyError extends Error {
+  constructor() {
+    super("Google's AI is very busy right now.");
   }
 }
 
@@ -65,6 +72,7 @@ export async function generateJson<T>(opts: {
   parts: Part[];
   schema: object;
   temperature?: number;
+  retried?: boolean;
 }): Promise<T> {
   const key = createHash("sha256").update(JSON.stringify([opts.system, opts.parts, opts.schema, opts.temperature])).digest("hex");
   const hit = cache.get(key);
@@ -100,17 +108,24 @@ export async function generateJson<T>(opts: {
       lastErr = e;
       const s = isTimeout(e) ? 504 : statusOf(e);
       if (s === 504 || s === 429 || s === 404 || s === 503 || s === 500) {
-        cooldownUntil.set(model, Date.now() + (s === 404 ? 24 * 3600_000 : retryDelayMs(e)));
+        cooldownUntil.set(model, Date.now() + (s === 404 ? 24 * 3600_000 : s === 429 ? retryDelayMs(e) : BUSY_COOLDOWN_MS));
         console.warn(`[gemini] ${model} → ${s}, trying next model`);
         continue;
       }
       throw e;
     }
   }
-  if (statusOf(lastErr) === 429) {
+  const last = isTimeout(lastErr) ? 504 : statusOf(lastErr);
+  if (!opts.retried && last !== undefined && last !== 429 && last >= 500) {
+    await new Promise((r) => setTimeout(r, 2000));
+    MODELS.forEach((m) => (cooldownUntil.get(m) ?? 0) - Date.now() <= BUSY_COOLDOWN_MS && cooldownUntil.delete(m));
+    return generateJson<T>({ ...opts, retried: true });
+  }
+  if (last === 429) {
     const soonest = Math.min(...MODELS.map((m) => cooldownUntil.get(m) ?? 0));
     throw new QuotaError(Math.max(1, Math.round((soonest - Date.now()) / 1000)));
   }
+  if (last !== undefined && last >= 500) throw new BusyError();
   throw lastErr;
 }
 
@@ -119,6 +134,9 @@ export function errorResponse(e: unknown): Response {
   if (e instanceof NoKeyError) {
     return Response.json({ error: "no_key", message: "AI is offline (no GEMINI_API_KEY)." }, { status: 503 });
   }
+  if (e instanceof BusyError) {
+    return Response.json({ error: "busy", message: "Google's AI is very busy right now — please try again in a minute." }, { status: 503 });
+  }
   if (e instanceof QuotaError) {
     return Response.json(
       { error: "quota", message: `AI is busy (free quota reached) — try again in ~${e.retryAfterS}s.` },
@@ -126,6 +144,5 @@ export function errorResponse(e: unknown): Response {
     );
   }
   console.error(e);
-  const message = e instanceof Error ? e.message : "Unknown error";
-  return Response.json({ error: "ai_failed", message }, { status: 502 });
+  return Response.json({ error: "ai_failed", message: "The AI couldn't process that — please try again." }, { status: 502 });
 }
